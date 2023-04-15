@@ -1,6 +1,6 @@
 ---
 title: Introduction to Julia
-
+subtitle: "https://github.com/cadojo/jsc-hackathon-2023"
 author:
   name: Joe Carpinelli
   email: jdcarpinelli@gmail.com
@@ -9,6 +9,7 @@ format:
   revealjs: 
     slide-number: c/t
     preview-links: true
+    logo: https://jsc-hack.github.io/img/Logo%203.png
 
 jupyter: julia-1.9
 execute:
