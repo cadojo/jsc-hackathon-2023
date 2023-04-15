@@ -1,0 +1,383 @@
+---
+title: Introduction to Julia
+
+author:
+  name: Joe Carpinelli
+  email: jdcarpinelli@gmail.com
+
+format:
+  revealjs: 
+    slide-number: c/t
+    preview-links: true
+
+jupyter: julia-1.9
+execute:
+  echo: true
+  code-fold: true
+  output: true
+---
+
+```{julia}
+#| echo: false
+#| output: false
+import Pkg
+Pkg.activate(".")
+Pkg.instantiate()
+```
+
+# `println("Hello, world!")` {style="font-size: 20pt"}
+
+:::{.columns}
+:::{.column}
+_Survey: [why are you interested in computing?](https://forms.gle/cYC6xZcgsn6Kg5P49)_
+:::
+:::{.column}
+![](images/qrcode.png){fig-align="center"}
+:::
+:::
+
+## The Julia Programming Language
+
+- Syntax like MATLAB
+- Open ecosystem like Python
+- Modern tooling, like Rust
+- Speeds close to C _if your functions are type-stable_
+
+## Ta-da!
+
+```{julia}
+abstract type Animal end
+struct Dog <: Animal end
+struct Cat <: Animal end
+struct Rat <: Animal end
+
+function speak(lilguy::Animal)
+    println("$(string(typeof(lilguy)))s say:", talk(lilguy))
+end
+
+talk(dog::Dog) = "🐶 Bark!"
+talk(cat::Cat) = "🐱 Wahh!"
+talk(rat::Rat) = "🐀 Squeak!"
+
+animals = [Dog(), Cat(), Rat()]
+speak.(animals);
+```
+
+# The Basics
+
+## Built-in Types
+
+```{julia}
+"""
+Present a variable, along with its type!
+"""
+withtype(variable) = println(variable, " is a ", typeof(variable))
+
+name = titlecase("joey") * " Carpinelli"
+withtype(name)
+
+age = 26
+withtype(age)
+
+age = 26.5
+withtype(age)
+
+numbers = collect(1:5)
+withtype(numbers)
+```
+
+## Custom  Types
+
+```{julia}
+struct Human <: Animal
+    name::String
+    color::String
+
+    Human(name, color) = new(titlecase(name), lowercase(color))
+end
+
+function talk(human::Human)
+    "👋 I'm $(human.name), and my favorite color is $(human.color)!"
+end
+
+me = Human("joey", "green")
+speak(me)
+```
+
+## Supertypes and Subtypes 
+
+:::::{.columns}
+
+::::{.column width="65%"}
+
+Types all exist in a __type tree__.
+```{julia}
+supertypes(Int)
+```
+
+:::{.fragment}
+The _leaves_ of the tree are `concrete`. 
+
+```{julia}
+isconcretetype(Int)
+```
+:::
+
+:::{.fragment}
+All others are `abstract`.
+
+```{julia}
+isabstracttype(Real)
+```
+:::
+
+::::
+
+::::{.column width="35%"}
+
+:::{.fragment}
+:::{fig-align="center" width="100%"}
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Full_binary.svg/1280px-Full_binary.svg.png)
+:::
+:::
+
+::::
+
+:::::
+
+## Type Parameters
+
+_A `Vector` of _what_? Oh, a `Vector{Int}`!_
+
+```julia
+struct Planet{T} where {T <: AbstractFloat}
+  moons::Vector{Moon{T}}
+  mass::T
+  name::String
+end
+
+mass(planet::Planet) = planet.mass
+name(planet::Planet) = planet.name
+moons(planet::Planet) = 
+``` 
+
+## Functions
+
+_Values in, values out_.
+
+```julia
+function f(x, y, z)
+  return x + y * z
+end
+
+g(x, y, z) = x + y * z
+```
+
+
+## Macros
+
+_Code in, code out. Add __features__ to the langauge_!
+
+```julia
+macro time(expression)
+  quote
+    before = now()
+    esc(expression)
+    print(seconds(now() - before), " seconds")
+  end
+end
+
+@time 2 + 2
+```
+
+# Begone, Classes
+_Generic code, you can stay._
+
+## Class-based OOP
+
+Classes have data, _and_ behavior.
+
+```python
+class Animal:
+   
+  def __init__(self, sound: str):
+    self._sound = sound
+
+  @property
+  def sound(self):
+    return self._sound
+
+  def speak(self):
+    return self.sound
+```
+
+## Class-based OOP {.unnumbered}
+
+Classes allow you to share data, _and_ behavior.
+
+```python
+class Mammal(Animal):
+   
+  def __init__(
+    self, 
+    sound: str, 
+    speed: int
+  ):
+    self._sound = sound
+    self._speed = speed
+
+  @property
+  def speed(self):
+    return self._speed
+
+  def move(self, position: int):
+    return position + self.speed
+```
+
+## Class-based OOP {.unnumbered}
+
+But doesn't this feel a bit unruly?
+
+```python
+class Human(Mammal):
+   
+  def __init__(self, name: str, color: str, *args):
+    self._name = name
+    self._color = color
+
+    super().__init__(self, *args)
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def color(self):
+    return self._color
+```
+
+## Class-based OOP {.unnumbered}
+
+Where did the `speak` method come from?
+
+```python
+joey = Human(
+  name="Joey",
+  color="green",
+  speed=-1,
+  sound="Hello!",
+)
+
+joey.speak()
+```
+
+## Class-based OOP {.unnumbered}
+
+What if you want a type to satisfy _multiple_ interfaces?
+
+```python
+class Human(Mammal, Scientist):
+   
+  def __init__(self, name: str, color: str, *args):
+    self._name = name
+    self._color = color
+
+    super().__init__(self, *args)
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def color(self):
+    return self._color
+```
+
+## Take the OOP, Leave the Classes
+
+The world has moved away from classes.
+
+:::{layout-ncol="2"}
+```rust
+//
+// Rust uses Traits
+//
+
+Trait Animal {
+  fn speak(&self) -> &str;
+}
+
+struct Dog {
+  name: String,
+}
+
+impl Animal for Dog {
+  fn speak(&self) {
+    return "bark";
+  }
+}
+```
+
+```julia
+#
+# Julia uses multiple dispatch
+#
+
+abstract type Animal end
+function speak(::Animal) end
+
+struct Dog <: Animal
+  name::String
+end
+
+speak(::Dog) = "bark"
+
+
+
+
+
+
+```
+:::
+
+## The Key Point
+
+Both Rust and Julia have separated _data_, and _behavior_.
+
+```julia
+abstract type Animal end
+function speak(::Animal) end
+
+struct Dog <: Animal
+    name::String
+end
+
+struct Cat <: Animal
+    jump::Int
+end
+
+speak(::Dog) = "bark"
+speak(::Cat) = "meow"
+
+animals::Vector{<:Animal} = [Dog("Hops"), Cat(5)]
+
+speak.(animals) # ["bark", "meow"]
+```
+
+# REPL 
+_Read, evaluate, print, loop._
+
+# Literate Programming
+
+_Quarto, and `Pluto.jl`!_
+
+## Quarto
+
+Meet [Quarto](https://quarto.org)! In fact, this 
+[presentation](https://github.com/cadojo/jsc-hackathon-2023)
+was built with Quarto!
+
+## `Pluto`
+
+`Pluto` notebooks are _similar to_ Jupyter notebooks, with one key difference: 
+when you run a cell, __all dependent cells re-run__.
